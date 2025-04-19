@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
@@ -76,9 +75,6 @@ struct dp_display {
 	void *dp_mst_prv_info;
 	u32 max_mixer_count;
 	u32 max_dsc_count;
-	bool cont_splash_enabled;
-	bool no_backlight_support;
-	bool ext_hpd_en;
 
 	int (*enable)(struct dp_display *dp_display, void *panel);
 	int (*post_enable)(struct dp_display *dp_display, void *panel);

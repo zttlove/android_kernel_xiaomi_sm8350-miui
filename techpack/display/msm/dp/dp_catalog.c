@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
@@ -2289,7 +2288,6 @@ static void dp_catalog_hpd_config_hpd(struct dp_catalog_hpd *hpd, bool en)
 {
 	struct dp_catalog_private *catalog;
 	struct dp_io_data *io_data;
-	struct dp_parser *parser;
 
 	if (!hpd) {
 		DP_ERR("invalid input\n");
@@ -2298,7 +2296,6 @@ static void dp_catalog_hpd_config_hpd(struct dp_catalog_hpd *hpd, bool en)
 
 	catalog = dp_catalog_get_priv(hpd);
 	io_data = catalog->io.dp_aux;
-	parser = catalog->parser;
 
 	if (en) {
 		u32 reftimer = dp_read(DP_DP_HPD_REFTIMER);
