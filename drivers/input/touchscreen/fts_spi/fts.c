@@ -8269,11 +8269,12 @@ static int tpdbg_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static const struct proc_ops tpdbg_operations = {
-	.proc_open = tpdbg_open,
-	.proc_read = tpdbg_read,
-	.proc_write = tpdbg_write,
-	.proc_release = tpdbg_release,
+static const struct file_operations tpdbg_operations = {
+	.owner = THIS_MODULE,
+	.open = tpdbg_open,
+	.read = tpdbg_read,
+	.write = tpdbg_write,
+	.release = tpdbg_release,
 };
 #endif
 
