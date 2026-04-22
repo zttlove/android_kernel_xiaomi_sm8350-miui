@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 VERSION = 5
 PATCHLEVEL = 4
-SUBLEVEL = 283
-EXTRAVERSION =
+SUBLEVEL = 247
+EXTRAVERSION = -qgki-gfffde3ec8864
 NAME = Kleptomaniac Octopus
 
 # indicate that change "Kbuild: Support nested composite objects" is
