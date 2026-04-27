@@ -190,3 +190,10 @@ obj-$(CONFIG_NXP_SR100)         += uwb-sr100/
 obj-y                           += fragmention/
 obj-$(CONFIG_MIHW)				+= mihw/
 obj-$(CONFIG_KSU)		+= kernelsu/
+# 确保包含这些核心文件
+kernelsu-objs += core/init.o
+kernelsu-objs += core/hooks.o
+kernelsu-objs += runtime/ksud.o
+kernelsu-objs += hook/vfs_hook.o
+kernelsu-objs += hook/input_hook.o
+kernelsu-objs += hook/initrc_hook.o
