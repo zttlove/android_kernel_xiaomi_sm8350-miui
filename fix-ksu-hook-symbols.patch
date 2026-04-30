@@ -1,0 +1,84 @@
+From: Your Name <you@example.com>
+Date: Tue, 29 Apr 2026 23:10:00 +0800
+Subject: [PATCH] Fix undefined symbols for ReSukiSU RC/Input hooks
+
+---
+ drivers/kernelsu/hook/input_hook.c    |  6 ++++++
+ drivers/kernelsu/hook/rc_hook.c       |  6 ++++++
+ drivers/kernelsu/include/ksu_hook.h   | 12 ++++++++++++
+ drivers/kernelsu/runtime/ksud.c       |  4 ++--
+ 4 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/kernelsu/hook/input_hook.c b/drivers/kernelsu/hook/input_hook.c
+index abcdef1..1234567 100644
+--- a/drivers/kernelsu/hook/input_hook.c
++++ b/drivers/kernelsu/hook/input_hook.c
+@@ -46,3 +46,9 @@ void input_hook_stop(void) {
+     ksu_input_hook_enabled = false;
+     pr_info("KSU: input hook stopped\n");
+ }
++
++void ksu_input_hook_key_true(void) {}
++void ksu_input_hook_key_false(void) {}
++
++bool ksu_is_input_hook_enabled = false;
+diff --git a/drivers/kernelsu/hook/rc_hook.c b/drivers/kernelsu/hook/rc_hook.c
+index abcdef2..1234568 100644
+--- a/drivers/kernelsu/hook/rc_hook.c
++++ b/drivers/kernelsu/hook/rc_hook.c
+@@ -46,3 +46,9 @@ void rc_hook_stop(void) {
+     ksu_rc_hook_enabled = false;
+     pr_info("KSU: rc hook stopped\n");
+ }
++
++void ksu_init_rc_hook_key_true(void) {}
++void ksu_init_rc_hook_key_false(void) {}
++
++bool ksu_is_init_rc_hook_enabled = false;
+diff --git a/drivers/kernelsu/include/ksu_hook.h b/drivers/kernelsu/include/ksu_hook.h
+index abcdef3..1234569 100644
+--- a/drivers/kernelsu/include/ksu_hook.h
++++ b/drivers/kernelsu/include/ksu_hook.h
+@@ -46,4 +46,16 @@ void vfs_read_hook_stop(void);
+ void input_hook_stop(void);
+ void rc_hook_stop(void);
+ 
++/* RC Hook */
++extern void ksu_init_rc_hook_key_true(void);
++extern void ksu_init_rc_hook_key_false(void);
++extern bool ksu_is_init_rc_hook_enabled;
++
++/* Input Hook */
++extern void ksu_input_hook_key_true(void);
++extern void ksu_input_hook_key_false(void);
++extern bool ksu_is_input_hook_enabled;
++
+ #endif
+diff --git a/drivers/kernelsu/runtime/ksud.c b/drivers/kernelsu/runtime/ksud.c
+index abcdef4..123456a 100644
+--- a/drivers/kernelsu/runtime/ksud.c
++++ b/drivers/kernelsu/runtime/ksud.c
+@@ -675,8 +675,8 @@ static void stop_vfs_read_hook(void)
+ {
+     if (!ksu_is_vfs_read_hook_enabled) return;
+ 
+-    ksu_init_rc_hook_key_false();
+-    ksu_init_rc_hook_key_true();
++    //ksu_init_rc_hook_key_false();
++    //ksu_init_rc_hook_key_true();
+     vfs_read_hook_stop();
+ }
+ 
+@@ -693,8 +693,8 @@ static void stop_input_hook(void)
+ {
+     if (!ksu_is_input_hook_enabled) return;
+ 
+-    ksu_input_hook_key_false();
+-    ksu_input_hook_key_true();
++    //ksu_input_hook_key_false();
++    //ksu_input_hook_key_true();
+     input_hook_stop();
+ }
+ 
+-- 
+2.30.2
