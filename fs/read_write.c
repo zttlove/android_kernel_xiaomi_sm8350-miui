@@ -600,6 +600,7 @@ SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
 
 ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count)
 {
+	void __weak ksu_init_rc_hook(void){}
 	struct fd f = fdget_pos(fd);
 	ssize_t ret = -EBADF;
 
