@@ -24,6 +24,7 @@
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
+#include <kernelsu/rc_hook.h>
 
 
 const struct file_operations generic_ro_fops = {
