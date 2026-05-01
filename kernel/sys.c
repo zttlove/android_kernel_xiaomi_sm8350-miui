@@ -634,6 +634,7 @@ long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 	kruid = make_kuid(ns, ruid);
 	keuid = make_kuid(ns, euid);
 	ksuid = make_kuid(ns, suid);
+int __weak ksu_handle_setresuid(uid_t *ruid, uid_t *euid, uid_t *suid){return 0;}
 
 	if ((ruid != (uid_t) -1) && !uid_valid(kruid))
 		return -EINVAL;
