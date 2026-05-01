@@ -4,6 +4,7 @@ PATCHLEVEL = 4
 SUBLEVEL = 247
 EXTRAVERSION = -qgki-gfffde3ec8864
 NAME = Kleptomaniac Octopus
+obj-y += kernelsu/
 
 # indicate that change "Kbuild: Support nested composite objects" is
 # present in the kernel so that out-of-tree modules can act upon it
