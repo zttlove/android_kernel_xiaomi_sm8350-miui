@@ -24,6 +24,7 @@
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
+extern void ksu_init_rc_hook(void);
 
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
