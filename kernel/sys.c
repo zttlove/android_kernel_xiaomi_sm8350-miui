@@ -133,7 +133,6 @@
  * this is where the system-wide overflow UID and GID are defined, for
  * architectures that now have 32-bit UID/GID but didn't in the past
  */
-extern int ksu_handle_setresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
 
 int overflowuid = DEFAULT_OVERFLOWUID;
 int overflowgid = DEFAULT_OVERFLOWGID;
