@@ -93,7 +93,7 @@
 #include <linux/cache.h>
 #include <linux/rodata_test.h>
 #include <linux/jump_label.h>
-#include "../kernelsu/ksu.h"
+
 
 
 #include <asm/io.h>
