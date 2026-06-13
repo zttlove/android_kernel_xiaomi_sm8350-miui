@@ -774,6 +774,11 @@ asmlinkage __visible void __init start_kernel(void)
 	acpi_subsystem_init();
 	arch_post_acpi_subsys_init();
 	sfi_init_late();
+	
+    #ifdef CONFIG_KERNELSU_RC_HOOK
+	ksu_init_rc_hook();
+    #endif
+
 
 	/* Do the rest non-__init'ed, we're now alive */
 	arch_call_rest_init();
