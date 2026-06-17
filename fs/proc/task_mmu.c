@@ -181,7 +181,7 @@ static void vma_stop(struct proc_maps_private *priv)
 	struct mm_struct *mm = priv->mm;
 
 	release_task_mempolicy(priv);
-	mmap_read_unlock(mm);
+	up_read(&mm->mmap_sem);
 	mmput(mm);
 }
 
@@ -204,7 +204,7 @@ static void *m_start(struct seq_file *m, loff_t *ppos)
 	struct proc_maps_private *priv = m->private;
 	unsigned long last_addr = m->version;
 	struct mm_struct *mm;
-	struct vm_area_struct __maybe_unused *vma;
+	struct vm_area_struct *vma;
 	unsigned int pos = *ppos;
 
 	/* See m_cache_vma(). Zero at the start or after lseek. */
@@ -219,7 +219,7 @@ static void *m_start(struct seq_file *m, loff_t *ppos)
 	if (!mm || !mmget_not_zero(mm))
 		return NULL;
 
-	if (mmap_read_lock_killable(mm)) {
+	if (down_read_killable(&mm->mmap_sem)) {
 		mmput(mm);
 		return ERR_PTR(-EINTR);
 	}
@@ -754,9 +754,6 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
 		[ilog2(VM_PKEY_BIT4)]	= "",
 #endif
 #endif /* CONFIG_ARCH_HAS_PKEYS */
-#ifdef CONFIG_HAVE_ARCH_USERFAULTFD_MINOR
-		[ilog2(VM_UFFD_MINOR)]	= "ui",
-#endif /* CONFIG_HAVE_ARCH_USERFAULTFD_MINOR */
 	};
 	size_t i;
 
@@ -940,7 +937,7 @@ static int show_smaps_rollup(struct seq_file *m, void *v)
 	struct proc_maps_private *priv = m->private;
 	struct mem_size_stats mss;
 	struct mm_struct *mm;
-	struct vm_area_struct __maybe_unused *vma;
+	struct vm_area_struct *vma;
 	unsigned long last_vma_end = 0;
 	int ret = 0;
 
@@ -956,7 +953,7 @@ static int show_smaps_rollup(struct seq_file *m, void *v)
 
 	memset(&mss, 0, sizeof(mss));
 
-	ret = mmap_read_lock_killable(mm);
+	ret = down_read_killable(&mm->mmap_sem);
 	if (ret)
 		goto out_put_mm;
 
@@ -975,7 +972,7 @@ static int show_smaps_rollup(struct seq_file *m, void *v)
 	__show_smap(m, &mss, true);
 
 	release_task_mempolicy(priv);
-	mmap_read_unlock(mm);
+	up_read(&mm->mmap_sem);
 
 out_put_mm:
 	mmput(mm);
@@ -1220,7 +1217,7 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 	struct task_struct *task;
 	char buffer[PROC_NUMBUF];
 	struct mm_struct *mm;
-	struct vm_area_struct __maybe_unused *vma;
+	struct vm_area_struct *vma;
 	enum clear_refs_types type;
 	struct mmu_gather tlb;
 	int itype;
@@ -1249,7 +1246,7 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 		};
 
 		if (type == CLEAR_REFS_MM_HIWATER_RSS) {
-			if (mmap_write_lock_killable(mm)) {
+			if (down_write_killable(&mm->mmap_sem)) {
 				count = -EINTR;
 				goto out_mm;
 			}
@@ -1259,11 +1256,11 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 			 * resident set size to this mm's current rss value.
 			 */
 			reset_mm_hiwater_rss(mm);
-			mmap_write_unlock(mm);
+			up_write(&mm->mmap_sem);
 			goto out_mm;
 		}
 
-		if (mmap_read_lock_killable(mm)) {
+		if (down_read_killable(&mm->mmap_sem)) {
 			count = -EINTR;
 			goto out_mm;
 		}
@@ -1272,8 +1269,8 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 			for (vma = mm->mmap; vma; vma = vma->vm_next) {
 				if (!(vma->vm_flags & VM_SOFTDIRTY))
 					continue;
-				mmap_read_unlock(mm);
-				if (mmap_write_lock_killable(mm)) {
+				up_read(&mm->mmap_sem);
+				if (down_write_killable(&mm->mmap_sem)) {
 					count = -EINTR;
 					goto out_mm;
 				}
@@ -1292,7 +1289,7 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 					 * failed like if
 					 * get_proc_task() fails?
 					 */
-					mmap_write_unlock(mm);
+					up_write(&mm->mmap_sem);
 					goto out_mm;
 				}
 				for (vma = mm->mmap; vma; vma = vma->vm_next) {
@@ -1302,7 +1299,7 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 					vma_set_page_prot(vma);
 					vm_write_end(vma);
 				}
-				mmap_write_downgrade(mm);
+				downgrade_write(&mm->mmap_sem);
 				break;
 			}
 
@@ -1315,7 +1312,7 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 		if (type == CLEAR_REFS_SOFT_DIRTY)
 			mmu_notifier_invalidate_range_end(&range);
 		tlb_finish_mmu(&tlb, 0, -1);
-		mmap_read_unlock(mm);
+		up_read(&mm->mmap_sem);
 out_mm:
 		mmput(mm);
 	}
@@ -1629,9 +1626,6 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 	unsigned long start_vaddr;
 	unsigned long end_vaddr;
 	int ret = 0, copied = 0;
-#ifdef CONFIG_KSU_SUSFS_SUS_MAP
-	struct vm_area_struct *vma;
-#endif
 
 	if (!mm || !mmget_not_zero(mm))
 		goto out;
@@ -1658,36 +1652,6 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 	svpfn = src / PM_ENTRY_BYTES;
 	end_vaddr = mm->task_size;
 
-	while (count > 0 && svpfn < end_vaddr / PAGE_SIZE) {
-		start_vaddr = svpfn * PAGE_SIZE;
-		end_vaddr = start_vaddr + (pm.len * PAGE_SIZE);
-		if (end_vaddr > mm->task_size)
-			end_vaddr = mm->task_size;
-
-		ret = down_read_killable(&mm->mmap_sem);
-		if (ret)
-			goto out_free;
-#ifdef CONFIG_KSU_SUSFS_SUS_MAP
-		vma = find_vma(mm, start_vaddr);
-		if (vma && vma->vm_file && SUSFS_IS_INODE_SUS_MAP(file_inode(vma->vm_file)))
-			goto bypass_orig_flow;
-#endif
-		ret = walk_page_range(mm, start_vaddr, end_vaddr, &pagemap_ops, &pm);
-#ifdef CONFIG_KSU_SUSFS_SUS_MAP
-bypass_orig_flow:
-#endif
-		up_read(&mm->mmap_sem);
-		start_vaddr = end_vaddr;
-
-		// 下方原有循环、拷贝、偏移逻辑保留（你源码自带部分）
-		// ... 此处保留你文件中剩下的原有代码不变 ...
-out_free:
-	kfree(pm.buffer);
-out_mm:
-	mmput(mm);
-out:
-	return copied ? copied : ret;
-}
 	/* watch out for wraparound */
 	start_vaddr = end_vaddr;
 	if (svpfn <= (ULONG_MAX >> PAGE_SHIFT))
@@ -1713,11 +1677,11 @@ out:
 		/* overflow ? */
 		if (end < start_vaddr || end > end_vaddr)
 			end = end_vaddr;
-		ret = mmap_read_lock_killable(mm);
+		ret = down_read_killable(&mm->mmap_sem);
 		if (ret)
 			goto out_free;
 		ret = walk_page_range(mm, start_vaddr, end, &pagemap_ops, &pm);
-		mmap_read_unlock(mm);
+		up_read(&mm->mmap_sem);
 		start_vaddr = end;
 
 		len = min(count, PM_ENTRY_BYTES * pm.pos);
@@ -1812,7 +1776,7 @@ cont:
 
 		list_add(&page->lru, &page_list);
 		inc_node_page_state(page, NR_ISOLATED_ANON +
-				page_is_file_lru(page));
+				page_is_file_cache(page));
 		isolated++;
 		if (isolated >= SWAP_CLUSTER_MAX)
 			break;
@@ -1839,7 +1803,7 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 	struct task_struct *task;
 	char buffer[200];
 	struct mm_struct *mm;
-	struct vm_area_struct __maybe_unused *vma;
+	struct vm_area_struct *vma;
 	enum reclaim_type type;
 	char *type_buf;
 	unsigned long start = 0;
@@ -1906,7 +1870,7 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 	if (!mm)
 		goto out;
 
-	mmap_read_lock(mm);
+	down_read(&mm->mmap_sem);
 	if (type == RECLAIM_RANGE) {
 		vma = find_vma(mm, start);
 		while (vma) {
@@ -1937,7 +1901,7 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 	}
 
 	flush_tlb_mm(mm);
-	mmap_read_unlock(mm);
+	up_read(&mm->mmap_sem);
 	mmput(mm);
 out:
 	put_task_struct(task);
