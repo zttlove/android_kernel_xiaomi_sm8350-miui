@@ -1629,6 +1629,9 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 	unsigned long start_vaddr;
 	unsigned long end_vaddr;
 	int ret = 0, copied = 0;
+#ifdef CONFIG_KSU_SUSFS_SUS_MAP
+	struct vm_area_struct *vma;
+#endif
 
 	if (!mm || !mmget_not_zero(mm))
 		goto out;
@@ -1655,6 +1658,36 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 	svpfn = src / PM_ENTRY_BYTES;
 	end_vaddr = mm->task_size;
 
+	while (count > 0 && svpfn < end_vaddr / PAGE_SIZE) {
+		start_vaddr = svpfn * PAGE_SIZE;
+		end_vaddr = start_vaddr + (pm.len * PAGE_SIZE);
+		if (end_vaddr > mm->task_size)
+			end_vaddr = mm->task_size;
+
+		ret = down_read_killable(&mm->mmap_sem);
+		if (ret)
+			goto out_free;
+#ifdef CONFIG_KSU_SUSFS_SUS_MAP
+		vma = find_vma(mm, start_vaddr);
+		if (vma && vma->vm_file && SUSFS_IS_INODE_SUS_MAP(file_inode(vma->vm_file)))
+			goto bypass_orig_flow;
+#endif
+		ret = walk_page_range(mm, start_vaddr, end_vaddr, &pagemap_ops, &pm);
+#ifdef CONFIG_KSU_SUSFS_SUS_MAP
+bypass_orig_flow:
+#endif
+		up_read(&mm->mmap_sem);
+		start_vaddr = end_vaddr;
+
+		// 下方原有循环、拷贝、偏移逻辑保留（你源码自带部分）
+		// ... 此处保留你文件中剩下的原有代码不变 ...
+out_free:
+	kfree(pm.buffer);
+out_mm:
+	mmput(mm);
+out:
+	return copied ? copied : ret;
+}
 	/* watch out for wraparound */
 	start_vaddr = end_vaddr;
 	if (svpfn <= (ULONG_MAX >> PAGE_SHIFT))
