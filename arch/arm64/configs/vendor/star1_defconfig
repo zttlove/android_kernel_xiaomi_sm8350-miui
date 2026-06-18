@@ -7045,24 +7045,20 @@ CONFIG_SECCOMP_FILTER=y
 CONFIG_BPF=y
 CONFIG_BPF_SYSCALL=y
 
-# 可选：BPF JIT 提升性能（建议开启）
+# BPF性能优化
 CONFIG_BPF_JIT=y
 CONFIG_BPF_JIT_ALWAYS_ON=y
-# 基础 KSU 总开关
+
+# KSU总开关
 CONFIG_KSU=y
 CONFIG_KSU_SUSFS=y
-# 进程属性隐藏钩子（修复 ksu_hide_setprocattr）
+
+# 各类钩子开关（对应你三个未定义符号）
 CONFIG_KSU_PROC_HOOKS=y
-# sys_read 文件读取钩子（修复 ksu_handle_sys_read）
 CONFIG_KSU_FILE_HOOKS=y
-# init rc 初始化钩子（修复 ksu_is_init_rc_hook_enabled）
 CONFIG_KSU_RC_HOOK=y
-# 必选依赖
+CONFIG_KSU_SELINUX_HOOK=y
+
+# 系统调用钩子依赖
 CONFIG_KSU_ALLOW_SYS_CALL_HOOK=y
-CONFIG_KSU_SELINUX_HOOK=y
-CONFIG_KSU=y
-CONFIG_KSU_PROC_HOOKS=y
-CONFIG_KSU_FILE_HOOKS=y
-CONFIG_KSU_RC_HOOK=y
-CONFIG_KSU_SELINUX_HOOK=y
 CONFIG_KSU_SUSFS=y
